@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets (CRITICAL - Never commit actual keys)
+.env
+*.env
+!.env.example
+
+# Python Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Editor & IDE artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+tempCodeRunnerFile.py
+style.txt
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp files
+*.log
