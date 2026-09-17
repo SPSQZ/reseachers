@@ -961,52 +961,68 @@ if st.session_state.running and not st.session_state.done:
         st.error("Research stopped because the topic was empty. Please enter a topic and try again.")
         st.stop()
 
-    # ── Step 1: Search (BACKEND UNCHANGED) ──
-    with st.spinner("🔍  Search Agent is working…"):
-        search_agent = build_search_agent()
-        sr = search_agent.invoke({
-            "messages": [("user", f"Find recent, reliable and detailed information about: {topic_val}")]
-        })
-        results["search"] = sr["messages"][-1].content
-        st.session_state.results = dict(results)
-    st.rerun() if False else None
+    try:
+        # ── Step 1: Search (BACKEND UNCHANGED) ──
+        with st.spinner("🔍  Search Agent is working…"):
+            search_agent = build_search_agent()
+            sr = search_agent.invoke({
+                "messages": [("user", f"Find recent, reliable and detailed information about: {topic_val}")]
+            })
+            results["search"] = sr["messages"][-1].content
+            st.session_state.results = dict(results)
 
-    # ── Step 2: Reader (BACKEND UNCHANGED) ──
-    with st.spinner("📄  Reader Agent is scraping top resources…"):
-        reader_agent = build_reader_agent()
-        rr = reader_agent.invoke({
-            "messages": [("user",
-                f"Based on the following search results about '{topic_val}', "
-                f"pick the most relevant URL and scrape it for deeper content.\n\n"
-                f"Search Results:\n{results['search'][:800]}"
-            )]
-        })
-        results["reader"] = rr["messages"][-1].content
-        st.session_state.results = dict(results)
+        # ── Step 2: Reader (BACKEND UNCHANGED) ──
+        with st.spinner("📄  Reader Agent is scraping top resources…"):
+            reader_agent = build_reader_agent()
+            rr = reader_agent.invoke({
+                "messages": [("user",
+                    f"Based on the following search results about '{topic_val}', "
+                    f"pick the most relevant URL and scrape it for deeper content.\n\n"
+                    f"Search Results:\n{results['search'][:800]}"
+                )]
+            })
+            results["reader"] = rr["messages"][-1].content
+            st.session_state.results = dict(results)
 
-    # ── Step 3: Writer (BACKEND UNCHANGED) ──
-    with st.spinner("✍️  Writer is drafting the report…"):
-        research_combined = (
-            f"SEARCH RESULTS:\n{results['search']}\n\n"
-            f"DETAILED SCRAPED CONTENT:\n{results['reader']}"
-        )
-        results["writer"] = writer_chain.invoke({
-            "topic": topic_val,
-            "research": research_combined
-        })
-        st.session_state.results = dict(results)
+        # ── Step 3: Writer (BACKEND UNCHANGED) ──
+        with st.spinner("✍️  Writer is drafting the report…"):
+            research_combined = (
+                f"SEARCH RESULTS:\n{results['search']}\n\n"
+                f"DETAILED SCRAPED CONTENT:\n{results['reader']}"
+            )
+            results["writer"] = writer_chain.invoke({
+                "topic": topic_val,
+                "research": research_combined
+            })
+            st.session_state.results = dict(results)
 
-    # ── Step 4: Critic (BACKEND UNCHANGED) ──
-    with st.spinner("🧐  Critic is reviewing the report…"):
-        results["critic"] = critic_chain.invoke({
-            "topic": topic_val,
-            "report": results["writer"]
-        })
-        st.session_state.results = dict(results)
+        # ── Step 4: Critic (BACKEND UNCHANGED) ──
+        with st.spinner("🧐  Critic is reviewing the report…"):
+            results["critic"] = critic_chain.invoke({
+                "topic": topic_val,
+                "report": results["writer"]
+            })
+            st.session_state.results = dict(results)
 
-    st.session_state.running = False
-    st.session_state.done = True
-    st.rerun()
+        st.session_state.running = False
+        st.session_state.done = True
+        st.rerun()
+
+    except Exception as e:
+        st.session_state.running = False
+        err_msg = str(e)
+        if "401" in err_msg or "UNAUTHENTICATED" in err_msg or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in err_msg:
+            st.error(
+                "🔑 **Authentication Error with Google Gemini API**\n\n"
+                "Your `GEMINI_API_KEY` is invalid or is an access token instead of an API Key.\n\n"
+                "**How to fix:**\n"
+                "1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey) and click **Create API Key**.\n"
+                "2. Your key should start with `AIzaSy...`\n"
+                "3. Paste it into your `.env` file as `GEMINI_API_KEY=AIzaSy...`\n"
+                "4. Restart the app."
+            )
+        else:
+            st.error(f"❌ **An error occurred during research:** {err_msg}")
 
 
 # ── Results display ───────────────────────────────────────────────────────────
