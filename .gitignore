@@ -31,3 +31,8 @@ desktop.ini
 
 # Logs & temp files
 *.log
+
+*.md
+!README.md
+!readme.md
+docs/
